@@ -312,6 +312,23 @@ async function scrapeRSSFeed(feedKey, feedConfig) {
         return 0;
     }
 }
+// =========================================
+// CLEANUP OLD NEWS (Delete news older than 2 days)
+// =========================================
+async function cleanupOldNews() {
+    try {
+        const [result] = await db.query(`
+            DELETE FROM news 
+            WHERE published_at < DATE_SUB(NOW(), INTERVAL 2 DAY)
+        `);
+
+        if (result.affectedRows > 0) {
+            console.log(`🧹 Cleaned up ${result.affectedRows} old articles (older than 2 days)`);
+        }
+    } catch (error) {
+        console.error('❌ Cleanup error:', error.message);
+    }
+}
 
 // =========================================
 // RUN ALL RSS SCRAPERS
@@ -334,6 +351,9 @@ export async function runRSSScrapers() {
             console.error(`Failed: ${feedKey}`);
         }
     }
+
+    // Cleanup old news after scraping
+    await cleanupOldNews();
 
     console.log(`\n🎉 Total: ${totalSaved} new articles saved!`);
     return totalSaved;
